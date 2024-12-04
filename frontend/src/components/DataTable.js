@@ -1,6 +1,7 @@
+// src/components/DataTable.js
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Table, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { Table, Form, Button, Row, Col, InputGroup, Alert } from 'react-bootstrap';
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -31,6 +32,7 @@ function DataTable() {
     } catch (error) {
       console.error('Error fetching data:', error);
       setError('Failed to fetch data');
+      setData([]); // Clear data on error
     } finally {
       setLoading(false);
     }
@@ -60,19 +62,23 @@ function DataTable() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const params = {};
-    if (date) {
-      params.date = moment(date).format('YYYY-MM-DD'); // Send date in proper format
+    if (!date || !location) {
+      setError('Please select both date and location');
+      setData([]); // Clear data
+      return;
     }
-    if (location) {
-      params.location = location;
-    }
+    setError(''); // Clear any previous error
+    const params = {
+      date: moment(date).format('YYYY-MM-DD'), // Send date in proper format
+      location: location,
+    };
     fetchData(params);
   };
 
   const handleReset = () => {
     setDate(null);
     setLocation('');
+    setError(''); // Clear error
     fetchData();
   };
 
@@ -134,52 +140,52 @@ function DataTable() {
         </Button>
       </div>
 
-      {error && <div className="text-danger mb-3">{error}</div>}
+      {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? (
         <div className="text-center">Loading...</div>
       ) : (
-        <div className="table-responsive">
-          <Table
-            striped
-            bordered
-            hover
-            className={`${theme === 'dark' ? 'table-dark' : 'table-light'}`}
-          >
-            <thead className={theme === 'dark' ? 'thead-light' : 'thead-dark'}>
-              <tr>
-                <th>ID</th>
-                <th>pH Value</th>
-                <th>Temperature [°C]</th>
-                <th>Turbidity [NTU]</th>
-                <th>Location</th>
-                <th>Time</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.length > 0 ? (
-                data.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.id}</td>
-                    <td>{parseFloat(item.ph_value).toFixed(2)}</td>
-                    <td>{parseFloat(item.temperature).toFixed(2)}</td>
-                    <td>{parseFloat(item.turbidity).toFixed(2)}</td>
-                    <td>{item.location}</td>
-                    <td>{moment(item.time, 'HH:mm:ss').format('HH:mm:ss')}</td>
-                    <td>{moment(item.date, 'YYYY-MM-DD').format('MMM Do, YYYY')}</td>
+        <>
+          {data.length > 0 ? (
+            <div className="table-responsive">
+              <Table
+                striped
+                bordered
+                hover
+                className={`${theme === 'dark' ? 'table-dark' : 'table-light'}`}
+              >
+                <thead className={theme === 'dark' ? 'thead-light' : 'thead-dark'}>
+                  <tr>
+                    <th>ID</th>
+                    <th>pH Value</th>
+                    <th>Temperature [°C]</th>
+                    <th>Turbidity [NTU]</th>
+                    <th>Location</th>
+                    <th>Time</th>
+                    <th>Date</th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="text-center">
-                    No data available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </div>
+                </thead>
+                <tbody>
+                  {data.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td>{parseFloat(item.ph_value).toFixed(2)}</td>
+                      <td>{parseFloat(item.temperature).toFixed(2)}</td>
+                      <td>{parseFloat(item.turbidity).toFixed(2)}</td>
+                      <td>{item.location}</td>
+                      <td>{moment(item.time, 'HH:mm:ss').format('HH:mm:ss')}</td>
+                      <td>{moment(item.date, 'YYYY-MM-DD').format('MMM Do, YYYY')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p>No data available</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
