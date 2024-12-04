@@ -1,3 +1,4 @@
+// src/components/HomePage.js
 import React, { useEffect, useState, useCallback, useContext } from 'react';
 import {
   Card,
@@ -63,6 +64,7 @@ function HomePage() {
       setSummary(response.data);
     } catch (error) {
       console.error('Error fetching summary insights:', error);
+      setSummary(null); // Set to null if error occurs
     }
   }, [BACKEND_URL]);
 
@@ -75,6 +77,7 @@ function HomePage() {
       setWarnings(response.data);
     } catch (error) {
       console.error('Error fetching warnings:', error);
+      setWarnings([]); // Set to empty array if error occurs
     }
   }, [BACKEND_URL]);
 
@@ -93,6 +96,7 @@ function HomePage() {
       });
     } catch (error) {
       console.error('Error fetching correlation data:', error);
+      setCorrelationData(null); // Set to null if error occurs
     } finally {
       setIsLoadingCorrelation(false);
     }
@@ -107,6 +111,7 @@ function HomePage() {
       setRecentData(response.data);
     } catch (error) {
       console.error('Error fetching recent data:', error);
+      setRecentData([]); // Set to empty array if error occurs
     }
   }, [BACKEND_URL]);
 
@@ -218,7 +223,7 @@ function HomePage() {
           {/* Top Insights */}
           <div className="mb-4">
             <h3 className="mb-3">Top Insights</h3>
-            {warnings.length > 0 ? (
+            {warnings && warnings.length > 0 ? (
               <Alert variant="danger">
                 <ul className="mb-0">
                   {warnings.map((warning, index) => (
@@ -232,9 +237,9 @@ function HomePage() {
             ) : (
               <Alert variant="success">All parameters are within safe limits.</Alert>
             )}
-            <Row>
-              {summary &&
-                Object.keys(summary).map((param, index) => (
+            {summary && Object.keys(summary).length > 0 ? (
+              <Row>
+                {Object.keys(summary).map((param, index) => (
                   <Col md={4} sm={6} xs={12} key={index}>
                     <motion.div whileHover={{ scale: 1.05 }}>
                       <Card
@@ -248,7 +253,8 @@ function HomePage() {
                           </Card.Title>
                           <hr />
                           <Card.Text>
-                            <strong>Highest Value:</strong> {summary[param].highest[0].value}{' '}
+                            <strong>Highest Value:</strong>{' '}
+                            {summary[param].highest[0]?.value ?? 'N/A'}{' '}
                             {param === 'temperature' ? '°C' : param === 'turbidity' ? 'NTU' : ''} at{' '}
                             <span className="text-danger">
                               {summary[param].highest
@@ -257,7 +263,8 @@ function HomePage() {
                             </span>
                           </Card.Text>
                           <Card.Text>
-                            <strong>Lowest Value:</strong> {summary[param].lowest[0].value}{' '}
+                            <strong>Lowest Value:</strong>{' '}
+                            {summary[param].lowest[0]?.value ?? 'N/A'}{' '}
                             {param === 'temperature' ? '°C' : param === 'turbidity' ? 'NTU' : ''} at{' '}
                             <span className="text-danger">
                               {summary[param].lowest.map((item) => item.location).join(', ')}
@@ -268,7 +275,10 @@ function HomePage() {
                     </motion.div>
                   </Col>
                 ))}
-            </Row>
+              </Row>
+            ) : (
+              <Alert variant="info">No data available for the last 24 hours.</Alert>
+            )}
           </div>
 
           {/* Correlation Graphs */}
@@ -291,57 +301,56 @@ function HomePage() {
               <div className="text-center my-5">
                 <Spinner animation="border" variant="primary" />
               </div>
-            ) : (
-              correlationData && (
-                <Row>
-                  <Col md={6} className="mb-4">
-                    <Scatter
-                      data={prepareChartData(
-                        correlationData.temperature,
-                        correlationData.ph_value,
-                        'Temperature (°C)',
-                        'pH Value'
-                      )}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                          x: {
-                            title: {
-                              display: true,
-                              text: 'Temperature (°C)',
-                              color: theme === 'dark' ? '#FFF' : '#000',
-                            },
-                            ticks: { color: theme === 'dark' ? '#FFF' : '#000' },
+            ) : correlationData && correlationData.temperature.length > 0 ? (
+              <Row>
+                <Col md={6} className="mb-4">
+                  <Scatter
+                    data={prepareChartData(
+                      correlationData.temperature,
+                      correlationData.ph_value,
+                      'Temperature (°C)',
+                      'pH Value'
+                    )}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                        x: {
+                          title: {
+                            display: true,
+                            text: 'Temperature (°C)',
+                            color: theme === 'dark' ? '#FFF' : '#000',
                           },
-                          y: {
-                            title: {
-                              display: true,
-                              text: 'pH Value',
-                              color: theme === 'dark' ? '#FFF' : '#000',
-                            },
-                            ticks: { color: theme === 'dark' ? '#FFF' : '#000' },
+                          ticks: { color: theme === 'dark' ? '#FFF' : '#000' },
+                        },
+                        y: {
+                          title: {
+                            display: true,
+                            text: 'pH Value',
+                            color: theme === 'dark' ? '#FFF' : '#000',
                           },
+                          ticks: { color: theme === 'dark' ? '#FFF' : '#000' },
                         },
-                        plugins: {
-                          legend: { labels: { color: theme === 'dark' ? '#FFF' : '#000' } },
-                        },
-                      }}
-                      height={300}
-                    />
-                  </Col>
-                  <Col md={6} className="mb-4">
-                    <Scatter
-                      data={prepareChartData(
-                        correlationData.turbidity,
-                        correlationData.ph_value,
-                        'Turbidity (NTU)',
-                        'pH Value'
-                      )}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
+                      },
+                      plugins: {
+                        legend: { labels: { color: theme === 'dark' ? '#FFF' : '#000' } },
+                      },
+                    }}
+                    height={300}
+                  />
+                </Col>
+                <Col md={6} className="mb-4">
+                  <Scatter
+                    data={prepareChartData(
+                      correlationData.turbidity,
+                      correlationData.ph_value,
+                      'Turbidity (NTU)',
+                      'pH Value'
+                    )}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
                           x: {
                             title: {
                               display: true,
@@ -358,69 +367,76 @@ function HomePage() {
                             },
                             ticks: { color: theme === 'dark' ? '#FFF' : '#000' },
                           },
-                        },
-                        plugins: {
-                          legend: { labels: { color: theme === 'dark' ? '#FFF' : '#000' } },
-                        },
-                      }}
-                      height={300}
-                    />
-                  </Col>
-                </Row>
-              )
+                      },
+                      plugins: {
+                        legend: { labels: { color: theme === 'dark' ? '#FFF' : '#000' } },
+                      },
+                    }}
+                    height={300}
+                  />
+                </Col>
+              </Row>
+            ) : (
+              <Alert variant="info">No correlation data available for the selected location.</Alert>
             )}
           </div>
 
           {/* Recent Data */}
           <div>
             <h3 className="mb-3">Recent Data</h3>
-            <Table
-              striped
-              bordered
-              hover
-              responsive
-              className={`${
-                theme === 'dark' ? 'table-dark' : 'table-light'
-              } text-center`}
-            >
-              <thead>
-                <tr>
-                  <th onClick={() => handleSort('location')} style={{ cursor: 'pointer' }}>
-                    Location {sortField === 'location' && (sortOrder === 'asc' ? '▲' : '▼')}
-                  </th>
-                  <th onClick={() => handleSort('ph_value')} style={{ cursor: 'pointer' }}>
-                    pH Value {sortField === 'ph_value' && (sortOrder === 'asc' ? '▲' : '▼')}
-                  </th>
-                  <th onClick={() => handleSort('temperature')} style={{ cursor: 'pointer' }}>
-                    Temperature (°C){' '}
-                    {sortField === 'temperature' && (sortOrder === 'asc' ? '▲' : '▼')}
-                  </th>
-                  <th onClick={() => handleSort('turbidity')} style={{ cursor: 'pointer' }}>
-                    Turbidity (NTU){' '}
-                    {sortField === 'turbidity' && (sortOrder === 'asc' ? '▲' : '▼')}
-                  </th>
-                  <th>Date</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {limitedData.map((row, index) => (
-                  <tr key={index}>
-                    <td>{row.location}</td>
-                    <td>{parseFloat(row.ph_value).toFixed(2)}</td>
-                    <td>{parseFloat(row.temperature).toFixed(2)}</td>
-                    <td>{parseFloat(row.turbidity).toFixed(2)}</td>
-                    <td>{moment(row.date).format('YYYY-MM-DD')}</td>
-                    <td>{moment(row.time, 'HH:mm').format('hh:mm A')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            <div className="text-center mt-3 mb-5">
-              <Link to="/DataTable">
-                <Button variant="outline-primary">View All Data</Button>
-              </Link>
-            </div>
+            {recentData && recentData.length > 0 ? (
+              <>
+                <Table
+                  striped
+                  bordered
+                  hover
+                  responsive
+                  className={`${
+                    theme === 'dark' ? 'table-dark' : 'table-light'
+                  } text-center`}
+                >
+                  <thead>
+                    <tr>
+                      <th onClick={() => handleSort('location')} style={{ cursor: 'pointer' }}>
+                        Location {sortField === 'location' && (sortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th onClick={() => handleSort('ph_value')} style={{ cursor: 'pointer' }}>
+                        pH Value {sortField === 'ph_value' && (sortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th onClick={() => handleSort('temperature')} style={{ cursor: 'pointer' }}>
+                        Temperature (°C){' '}
+                        {sortField === 'temperature' && (sortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th onClick={() => handleSort('turbidity')} style={{ cursor: 'pointer' }}>
+                        Turbidity (NTU){' '}
+                        {sortField === 'turbidity' && (sortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th>Date</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {limitedData.map((row, index) => (
+                      <tr key={index}>
+                        <td>{row.location}</td>
+                        <td>{parseFloat(row.ph_value).toFixed(2)}</td>
+                        <td>{parseFloat(row.temperature).toFixed(2)}</td>
+                        <td>{parseFloat(row.turbidity).toFixed(2)}</td>
+                        <td>{moment(row.date).format('YYYY-MM-DD')}</td>
+                        <td>{moment(row.time, 'HH:mm').format('hh:mm A')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                <div className="text-center mt-3 mb-5">
+                  <Link to="/DataTable">
+                    <Button variant="outline-primary">View All Data</Button>
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <Alert variant="info">No recent data available.</Alert>
+            )}
           </div>
         </>
       )}
